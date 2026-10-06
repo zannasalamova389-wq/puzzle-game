@@ -7,7 +7,7 @@ let soundEnabled = true;
 let draggedPiece = null;
 let touchStartPiece = null;
 let isGameActive = false;
-let piecesState = []; // Массив индексов: piecesState[position] = correctIndex
+let piecesState = [];
 
 const puzzleBoard = document.getElementById('puzzle-board');
 const previewImg = document.getElementById('preview-img');
@@ -22,9 +22,16 @@ const levelBtns = document.querySelectorAll('.level-btn');
 const imageSelect = document.getElementById('image-select');
 const soundToggle = document.getElementById('sound-toggle');
 
+const bgMusic = document.getElementById('bg-music');
 const clickSound = document.getElementById('click-sound');
 const matchSound = document.getElementById('match-sound');
 const winSound = document.getElementById('win-sound');
+
+// Громкость
+bgMusic.volume = 0.2;
+clickSound.volume = 0.5;
+matchSound.volume = 0.6;
+winSound.volume = 0.7;
 
 // Воспроизведение звука
 function playSound(audio) {
@@ -77,17 +84,12 @@ function createPuzzle() {
     puzzleBoard.style.gridTemplateRows = `repeat(${currentSize}, 1fr)`;
 
     const total = currentSize * currentSize;
-
-    // Правильный порядок: 0, 1, 2, ...
     const correctOrder = [];
     for (let i = 0; i < total; i++) {
         correctOrder.push(i);
     }
 
-    // Перемешиваем
     piecesState = shuffle(correctOrder);
-
-    // Отрисовываем
     renderPieces();
     isGameActive = true;
 }
@@ -104,15 +106,12 @@ function renderPieces() {
         el.style.backgroundImage = `url(${currentImage})`;
         el.style.backgroundSize = `${currentSize * 100}% ${currentSize * 100}%`;
         el.style.backgroundPosition = getBgPosition(correctIndex);
-
-        // Храним позицию в сетке
         el.dataset.position = position;
 
         el.addEventListener('dragstart', handleDragStart);
         el.addEventListener('dragover', handleDragOver);
         el.addEventListener('drop', handleDrop);
         el.addEventListener('dragend', handleDragEnd);
-
         el.addEventListener('touchstart', handleTouchStart, { passive: true });
         el.addEventListener('touchmove', handleTouchMove, { passive: false });
         el.addEventListener('touchend', handleTouchEnd);
@@ -180,10 +179,8 @@ function swapPieces(piece1, piece2) {
     const pos1 = parseInt(piece1.dataset.position);
     const pos2 = parseInt(piece2.dataset.position);
 
-    // Меняем в массиве
     [piecesState[pos1], piecesState[pos2]] = [piecesState[pos2], piecesState[pos1]];
 
-    // Меняем визуально
     const bg1 = piece1.style.backgroundPosition;
     const bg2 = piece2.style.backgroundPosition;
     piece1.style.backgroundPosition = bg2;
@@ -222,6 +219,11 @@ function checkWin() {
 
 // Запуск игры
 function startGame() {
+    // Фоновая музыка
+    if (soundEnabled && bgMusic.paused) {
+        bgMusic.play().catch(e => console.log(e));
+    }
+
     moves = 0;
     movesDisplay.textContent = '0';
     winMessage.classList.remove('active');
@@ -252,11 +254,23 @@ soundToggle.addEventListener('click', () => {
     if (soundEnabled) {
         soundToggle.textContent = '🔊 Звук вкл';
         soundToggle.classList.remove('muted');
+        if (bgMusic.paused) {
+            bgMusic.play().catch(e => console.log(e));
+        }
     } else {
         soundToggle.textContent = '🔇 Звук выкл';
         soundToggle.classList.add('muted');
+        bgMusic.pause();
     }
 });
 
 // Старт
 startGame();
+
+// Запуск фоновой музыки после первого клика (браузеры блокируют автозапуск)
+document.addEventListener('click', function startBgMusic() {
+    if (soundEnabled && bgMusic.paused) {
+        bgMusic.play().catch(e => console.log(e));
+    }
+    document.removeEventListener('click', startBgMusic);
+}, { once: true });
